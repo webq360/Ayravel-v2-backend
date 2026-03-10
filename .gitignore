@@ -1,0 +1,5 @@
+.vercel
+.env
+node_modules
+.env*.local
+google-service-account-key.json

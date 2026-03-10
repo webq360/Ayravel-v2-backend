@@ -1,0 +1,175 @@
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.tagControllers = void 0;
+const http_status_1 = __importDefault(require("http-status"));
+const catchAsync_1 = __importDefault(require("../../utils/catchAsync"));
+const sendResponse_1 = __importDefault(require("../../utils/sendResponse"));
+const tags_services_1 = require("./tags.services");
+const cloudinary_config_1 = require("../../config/cloudinary.config");
+const getAllTags = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield tags_services_1.tagServices.getAllTagsFromDB();
+    (0, sendResponse_1.default)(res, {
+        success: true,
+        statusCode: http_status_1.default.OK,
+        message: "Tags retrieved successfully!",
+        data: result,
+    });
+}));
+const getSingleTag = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const id = req.params.id;
+    const result = yield tags_services_1.tagServices.getSingleTagFromDB(id);
+    (0, sendResponse_1.default)(res, {
+        success: true,
+        statusCode: http_status_1.default.OK,
+        message: "Tag retrieved successfully!",
+        data: result,
+    });
+}));
+// const createTag = catchAsync(async (req, res) => {
+//   const files =
+//     (req.files as { [fieldname: string]: Express.Multer.File[] }) || {};
+//   const tagData = {
+//     ...req.body,
+//     image: files["imageFile"]?.[0]?.path || req.body.image || "",
+//   };
+//   const result = await tagServices.createTagOnDB(tagData);
+//   sendResponse(res, {
+//     success: true,
+//     statusCode: httpStatus.CREATED,
+//     message: "Tag created successfully!",
+//     data: result,
+//   });
+// });
+// const updateTag = catchAsync(async (req, res) => {
+//   const id = req.params.id;
+//   const files =
+//     (req.files as { [fieldname: string]: Express.Multer.File[] }) || {};
+//   const updatedData: any = { ...req.body };
+//   if (files["imageFile"]?.[0]?.path) {
+//     updatedData.image = files["imageFile"][0].path;
+//   }
+//   const result = await tagServices.updateTagInDB(id, updatedData);
+//   sendResponse(res, {
+//     success: true,
+//     statusCode: httpStatus.OK,
+//     message: "Tag updated successfully!",
+//     data: result,
+//   });
+// });
+const createTag = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d;
+    const files = req.files || {};
+    let iconUrl = req.body.iconUrl || "";
+    if ((_b = (_a = files["iconFile"]) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.buffer) {
+        const uploaded = yield (0, cloudinary_config_1.uploadBufferToCloudinary)(files["iconFile"][0].buffer, files["iconFile"][0].originalname);
+        iconUrl = (uploaded === null || uploaded === void 0 ? void 0 : uploaded.secure_url) || "";
+    }
+    let imageUrl = req.body.image && req.body.image.trim() ? req.body.image : undefined;
+    if ((_d = (_c = files["imageFile"]) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.buffer) {
+        const uploaded = yield (0, cloudinary_config_1.uploadBufferToCloudinary)(files["imageFile"][0].buffer, files["imageFile"][0].originalname);
+        imageUrl = uploaded === null || uploaded === void 0 ? void 0 : uploaded.secure_url;
+    }
+    const tagData = {
+        name: req.body.name,
+        slug: req.body.slug,
+        details: req.body.details,
+        icon: {
+            name: req.body.iconName || "",
+            url: iconUrl,
+        },
+    };
+    if (imageUrl) {
+        tagData.image = imageUrl;
+    }
+    const result = yield tags_services_1.tagServices.createTagOnDB(tagData);
+    (0, sendResponse_1.default)(res, {
+        success: true,
+        statusCode: http_status_1.default.CREATED,
+        message: "Tag created successfully!",
+        data: result,
+    });
+}));
+// const updateTag = catchAsync(async (req, res) => {
+//   const { id } = req.params;
+//   const files =
+//     (req.files as { [fieldname: string]: Express.Multer.File[] }) || {};
+//   const updatedData: any = { ...req.body };
+//   if (files["imageFile"]?.[0]?.path) {
+//     updatedData.image = files["imageFile"][0].path;
+//   }
+//   if (files["iconFile"]?.[0]?.path) {
+//     updatedData.icon = {
+//       name: req.body.iconName || "",
+//       url: files["iconFile"][0].path,
+//     };
+//   }
+//   const result = await tagServices.updateTagInDB(id, updatedData);
+//   sendResponse(res, {
+//     success: true,
+//     statusCode: httpStatus.OK,
+//     message: "Tag updated successfully!",
+//     data: result,
+//   });
+// });
+const updateTag = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d;
+    const { id } = req.params;
+    const files = req.files || {};
+    const updatedData = Object.assign({}, req.body);
+    if ((_b = (_a = files["imageFile"]) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.buffer) {
+        const uploaded = yield (0, cloudinary_config_1.uploadBufferToCloudinary)(files["imageFile"][0].buffer, files["imageFile"][0].originalname);
+        updatedData.image = (uploaded === null || uploaded === void 0 ? void 0 : uploaded.secure_url) || "";
+    }
+    else if (req.body.image) {
+        updatedData.image = req.body.image;
+    }
+    if ((_d = (_c = files["iconFile"]) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.buffer) {
+        const uploaded = yield (0, cloudinary_config_1.uploadBufferToCloudinary)(files["iconFile"][0].buffer, files["iconFile"][0].originalname);
+        updatedData.icon = {
+            name: req.body.iconName || "",
+            url: (uploaded === null || uploaded === void 0 ? void 0 : uploaded.secure_url) || "",
+        };
+    }
+    else if (req.body.iconUrl || req.body.iconName) {
+        updatedData.icon = {
+            name: req.body.iconName || "",
+            url: req.body.iconUrl || "",
+        };
+    }
+    const result = yield tags_services_1.tagServices.updateTagInDB(id, updatedData);
+    (0, sendResponse_1.default)(res, {
+        success: true,
+        statusCode: http_status_1.default.OK,
+        message: "Tag updated successfully!",
+        data: result,
+    });
+}));
+const deleteTag = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const id = req.params.id;
+    const result = yield tags_services_1.tagServices.deleteTagFromDB(id);
+    (0, sendResponse_1.default)(res, {
+        success: true,
+        statusCode: http_status_1.default.OK,
+        message: "Tag deleted successfully!",
+        data: result,
+    });
+}));
+exports.tagControllers = {
+    getAllTags,
+    getSingleTag,
+    createTag,
+    updateTag,
+    deleteTag,
+};

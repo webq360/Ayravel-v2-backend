@@ -1,0 +1,181 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const attributes_route_1 = require("../modules/attributes/attributes.route");
+const auth_routes_1 = require("../modules/auth/auth.routes");
+const authors_routes_1 = require("../modules/authors/authors.routes");
+const becomeSellerReview_routes_1 = require("../modules/becomeSellerReview/becomeSellerReview.routes");
+const brands_routes_1 = require("../modules/brands/brands.routes");
+const category_routes_1 = require("../modules/category/category.routes");
+const coupons_route_1 = require("../modules/coupons/coupons.route");
+const steadfast_routes_1 = require("../modules/courier/steadfast.routes");
+const pathao_routes_1 = require("../modules/courier/pathao.routes");
+const customer_route_1 = require("../modules/customer/customer.route");
+const dashboard_routes_1 = require("../modules/dashboard/dashboard.routes");
+const faq_route_1 = require("../modules/faq/faq.route");
+const footer_settings_routes_1 = require("../modules/footer-settings/footer-settings.routes");
+const dynamic_pages_routes_1 = require("../modules/dynamic-pages/dynamic-pages.routes");
+const order_route_1 = require("../modules/order/order.route");
+const orderStatus_route_1 = require("../modules/orderStatus/orderStatus.route");
+const product_routes_1 = require("../modules/product/product.routes");
+const pdf_routes_1 = require("../modules/pdf/pdf.routes");
+const review_routes_1 = require("../modules/review/review.routes");
+const salesHistory_routes_1 = require("../modules/salesHistory/salesHistory.routes");
+const settings_routes_1 = require("../modules/settings/settings.routes");
+const shipping_route_1 = require("../modules/shipping/shipping.route");
+const shop_route_1 = require("../modules/shop/shop.route");
+const summary_route_1 = require("../modules/summary/summary.route");
+const superAdmin_route_1 = require("../modules/super-admin/superAdmin.route");
+const tags_routes_1 = require("../modules/tags/tags.routes");
+const taxs_route_1 = require("../modules/taxs/taxs.route");
+const terms_route_1 = require("../modules/terms/terms.route");
+const transactions_route_1 = require("../modules/transactions/transactions.route");
+const transfer_route_1 = require("../modules/transfer/transfer.route");
+const user_routes_1 = require("../modules/user/user.routes");
+const vendor_route_1 = require("../modules/vendor/vendor.route");
+const withdrawals_routes_1 = require("./../modules/withdrawals/withdrawals.routes");
+const contact_routes_1 = require("../modules/contact/contact.routes");
+const router = express_1.default.Router();
+const moduleRoutes = [
+    {
+        path: "/auth",
+        route: auth_routes_1.AuthRoutes,
+    },
+    {
+        path: "/author",
+        route: authors_routes_1.AuthorRoutes,
+    },
+    {
+        path: "/user",
+        route: user_routes_1.UserRoutes,
+    },
+    {
+        path: "/vendor",
+        route: vendor_route_1.VendorRoutes,
+    },
+    {
+        path: "/customer",
+        route: customer_route_1.CustomerRoutes,
+    },
+    {
+        path: "/super-admin",
+        route: superAdmin_route_1.SuperAdminRoutes,
+    },
+    {
+        path: "/category",
+        route: category_routes_1.CategoryRoutes,
+    },
+    {
+        path: "/brand",
+        route: brands_routes_1.BrandRoutes,
+    },
+    {
+        path: "/tag",
+        route: tags_routes_1.TagRoutes,
+    },
+    {
+        path: "/product",
+        route: product_routes_1.ProductRoutes,
+    },
+    {
+        path: "/coupon",
+        route: coupons_route_1.CouponRoutes,
+    },
+    {
+        path: "/transaction",
+        route: transactions_route_1.TransactionRoutes,
+    },
+    {
+        path: "/order",
+        route: order_route_1.OrderRoutes,
+    },
+    {
+        path: "/attribute",
+        route: attributes_route_1.AttributeRoutes,
+    },
+    {
+        path: "/shop",
+        route: shop_route_1.ShopRoutes,
+    },
+    {
+        path: "/transfer",
+        route: transfer_route_1.TransferRoutes,
+    },
+    {
+        path: "/terms",
+        route: terms_route_1.TermsRoutes,
+    },
+    {
+        path: "/tax",
+        route: taxs_route_1.TaxRoutes,
+    },
+    {
+        path: "/shipping",
+        route: shipping_route_1.ShippingRoutes,
+    },
+    {
+        path: "/faq",
+        route: faq_route_1.FaqRoutes,
+    },
+    {
+        path: "/order-status",
+        route: orderStatus_route_1.OrderStatusRoutes,
+    },
+    {
+        path: "/summary",
+        route: summary_route_1.SummaryRoutes,
+    },
+    {
+        path: "/sales-history",
+        route: salesHistory_routes_1.SalesHistoryRoutes,
+    },
+    {
+        path: "/withdrawals",
+        route: withdrawals_routes_1.WithdrawalRoutes,
+    },
+    {
+        path: "/dashboard",
+        route: dashboard_routes_1.DashboardRoutes,
+    },
+    {
+        path: "/become-seller-reviews",
+        route: becomeSellerReview_routes_1.BecomeSellerReviewRoutes,
+    },
+    {
+        path: "/reviews",
+        route: review_routes_1.reviewRoutes,
+    },
+    {
+        path: "/settings",
+        route: settings_routes_1.settingsRoutes,
+    },
+    {
+        path: "/steadfast",
+        route: steadfast_routes_1.steadfastRoutes,
+    },
+    {
+        path: "/pathao",
+        route: pathao_routes_1.pathaoRoutes,
+    },
+    {
+        path: "/footer-settings",
+        route: footer_settings_routes_1.footerSettingsRoutes,
+    },
+    {
+        path: "/dynamic-pages",
+        route: dynamic_pages_routes_1.dynamicPagesRoutes,
+    },
+    {
+        path: "/contact",
+        route: contact_routes_1.ContactRoutes,
+    },
+    {
+        path: "/",
+        route: pdf_routes_1.PdfRoutes,
+    },
+];
+moduleRoutes.forEach((route) => router.use(route === null || route === void 0 ? void 0 : route.path, route === null || route === void 0 ? void 0 : route.route));
+exports.default = router;

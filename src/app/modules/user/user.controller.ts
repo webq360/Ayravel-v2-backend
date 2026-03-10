@@ -1,0 +1,116 @@
+import httpStatus from "http-status";
+import catchAsync from "../../utils/catchAsync";
+import sendResponse from "../../utils/sendResponse";
+import { UserServices } from "./user.service";
+
+const getAllUser = catchAsync(async (req, res) => {
+  const result = await UserServices.getAllUserFromDB(req.query);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "All user data retrieve successfully!",
+    data: result.data,
+    meta: result.meta,
+  });
+});
+
+const getSingleUser = catchAsync(async (req, res) => {
+  const id = req.params.id;
+
+  const result = await UserServices.getSingleUserFromDB(id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "User data retrieve successfully!",
+    data: result,
+  });
+});
+
+const getAllAdminUser = catchAsync(async (req, res) => {
+  const result = await UserServices.getAllAdminFromDB(req.query);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "All admin data retrieve successfully!",
+    data: result.data,
+    meta: result.meta,
+  });
+});
+
+const getSuperAdmin = catchAsync(async (req, res) => {
+  const id = req.params.id;
+  const result = await UserServices.getAdminProfileFromDB(id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Super admin data retrieve successfully!",
+    data: result,
+  });
+});
+
+const getAllVendorUser = catchAsync(async (req, res) => {
+  const result = await UserServices.getAllVendorFromDB(req.query);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "All vendor data retrieve successfully!",
+    data: result.data,
+    meta: result.meta,
+  });
+});
+
+const updateUser = catchAsync(async (req, res) => {
+  const id = req.params.id;
+  const payload = req.body;
+
+  const result = await UserServices.updateUserOnDB(id, payload);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "User updated successfully!",
+    data: result,
+  });
+});
+
+const deleteSingleUser = catchAsync(async (req, res) => {
+  const id = req.params.id;
+
+  await UserServices.deletSingleUserFromDB(id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "User deleted successfully!",
+    data: undefined,
+  });
+});
+
+const getUserWithDetails = catchAsync(async (req, res) => {
+  const userId = req.params.id;
+  const result = await UserServices.getUserWithDetailsFromDB(userId, req.query);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "User details retrieved successfully!",
+    data: result.data,
+    meta: result.meta,
+  });
+});
+
+export const UserControllers = {
+  getSingleUser,
+  getAllUser,
+  getAllAdminUser,
+  getSuperAdmin,
+  getAllVendorUser,
+  updateUser,
+  deleteSingleUser,
+  getUserWithDetails,
+};
