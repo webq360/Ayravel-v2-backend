@@ -17,12 +17,15 @@ const feauturedCategoriesFromDB = async () => {
 };
 
 const createCategoryIntoDB = async (payload: TCategory) => {
-  const isCategoryExists = await CategoryModel.findOne({ name: payload?.name });
+  const isCategoryExists = await CategoryModel.findOne({ 
+    name: payload?.name,
+    mainCategory: payload?.mainCategory 
+  });
 
   if (isCategoryExists) {
     throw new AppError(
       httpStatus.CONFLICT,
-      `Category with ${isCategoryExists?.name} already exists!`
+      `Category with ${isCategoryExists?.name} already exists in ${isCategoryExists?.mainCategory}!`
     );
   }
 
@@ -39,11 +42,14 @@ const updateCategoryInDB = async (id: string, payload: Partial<TCategory>) => {
 
   if (payload.name) {
     payload.slug = payload.name.split(" ").join("-").toLowerCase();
-    const exists = await CategoryModel.findOne({ name: payload?.name });
+    const exists = await CategoryModel.findOne({ 
+      name: payload?.name,
+      mainCategory: payload?.mainCategory || isCategory.mainCategory 
+    });
     if (exists && exists._id.toString() !== id) {
       throw new AppError(
         httpStatus.CONFLICT,
-        `Category with ${exists?.name} already exists!`
+        `Category with ${exists?.name} already exists in ${exists?.mainCategory}!`
       );
     }
   }
