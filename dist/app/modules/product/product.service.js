@@ -16,63 +16,28 @@ exports.productServices = void 0;
 const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
 const cloudinary_config_1 = require("../../config/cloudinary.config");
 const handleAppError_1 = __importDefault(require("../../errors/handleAppError"));
-const category_model_1 = require("../category/category.model");
 const product_const_1 = require("./product.const");
 const product_model_1 = require("./product.model");
-//normalize binding input
-const normalizeBinding = (binding) => {
-    if (!binding)
-        return binding;
-    return binding.toLowerCase();
-};
-// const createProductOnDB = async (payload: TProduct) => {
-//   const result = await ProductModel.create(payload);
-//   return result;
-// };
-// 🔹 Create product
-// const createProductOnDB = async (payload: TProduct) => {
-//   // Ensure salePrice is defined if isOnSale is true
-//   if (payload.bookInfo?.specification?.binding) {
-//     payload.bookInfo.specification.binding = normalizeBinding(
-//       payload.bookInfo.specification.binding
-//     ) as "hardcover" | "paperback";
-//   }
-//   const result = await ProductModel.create(payload);
-//   return result;
-// };
 const createProductOnDB = (payload) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
-    // Check if any category is a book category
-    const categoryIds = payload.categoryAndTags.categories;
-    const categories = yield category_model_1.CategoryModel.find({ _id: { $in: categoryIds } });
-    const isBook = categories.some(cat => { var _a; return ((_a = cat.mainCategory) === null || _a === void 0 ? void 0 : _a.toLowerCase()) === 'book'; });
-    // Only keep bookInfo for book products
-    if (isBook) {
-        if ((_b = (_a = payload.bookInfo) === null || _a === void 0 ? void 0 : _a.specification) === null || _b === void 0 ? void 0 : _b.binding) {
-            payload.bookInfo.specification.binding = normalizeBinding(payload.bookInfo.specification.binding);
-        }
-    }
-    else {
-        // Remove bookInfo for non-book products
-        delete payload.bookInfo;
+    // Generate variants if it's a variable product
+    if (payload.productType === "variable" && payload.hasVariants && payload.variants) {
+        // Auto-generate SKUs for variants if not provided
+        payload.variants = payload.variants.map((variant, index) => (Object.assign(Object.assign({}, variant), { sku: variant.sku || `${payload.productInfo.sku}-V${index + 1}` })));
     }
     const result = yield product_model_1.ProductModel.create(payload);
     return result;
 });
 const getAllProductFromDB = (query) => __awaiter(void 0, void 0, void 0, function* () {
     const productQuery = new QueryBuilder_1.default(product_model_1.ProductModel.find()
-        .populate("categoryAndTags.publisher")
         .populate("categoryAndTags.categories")
         .populate("categoryAndTags.tags")
-        .populate("bookInfo.specification.authors"), query)
+        .populate("productInfo.brand"), query)
         .search(product_const_1.ProductSearchableFields)
         .filter()
         .sort()
         .paginate()
         .fields();
-    // ✅ Execute main query for product data
     const data = yield productQuery.modelQuery;
-    // ✅ Use built-in countTotal() from QueryBuilder
     const meta = yield productQuery.countTotal();
     return {
         meta,
@@ -100,25 +65,8 @@ const getProductsByCategoryandTag = (category, tag) => __awaiter(void 0, void 0,
             },
         },
         {
-            $lookup: {
-                from: "publishers",
-                localField: "categoryAndTags.publisher",
-                foreignField: "_id",
-                as: "publisherDetails",
-            },
-        },
-        {
-            $lookup: {
-                from: "authors",
-                localField: "bookInfo.specification.authors",
-                foreignField: "_id",
-                as: "authorsDetails",
-            },
-        },
-        {
             $addFields: {
                 categoryAndTags: {
-                    publisher: { $arrayElemAt: ["$publisherDetails", 0] },
                     categories: "$categoryDetails",
                     tags: "$tagDetails",
                 },
@@ -133,67 +81,47 @@ const getProductsByCategoryandTag = (category, tag) => __awaiter(void 0, void 0,
             $project: {
                 categoryDetails: 0,
                 tagDetails: 0,
-                publisherDetails: 0,
             },
         },
     ]);
 });
 const getSingleProductFromDB = (id) => __awaiter(void 0, void 0, void 0, function* () {
     return product_model_1.ProductModel.findById(id)
-        .populate("categoryAndTags.publisher")
         .populate("categoryAndTags.categories")
         .populate("categoryAndTags.tags")
-        .populate("bookInfo.specification.authors");
+        .populate("productInfo.brand");
 });
 const updateProductOnDB = (id, updatedData) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     const isProductExist = yield product_model_1.ProductModel.findById(id);
     if (!isProductExist) {
         throw new handleAppError_1.default(404, "Product not found!");
     }
-    // Normalize binding
-    if ((_b = (_a = updatedData.bookInfo) === null || _a === void 0 ? void 0 : _a.specification) === null || _b === void 0 ? void 0 : _b.binding) {
-        updatedData.bookInfo.specification.binding = normalizeBinding(updatedData.bookInfo.specification.binding);
-    }
     // Merge categories (append new, keep existing)
-    if ((_c = updatedData.categoryAndTags) === null || _c === void 0 ? void 0 : _c.categories) {
-        const existingCategories = ((_d = isProductExist.categoryAndTags) === null || _d === void 0 ? void 0 : _d.categories) || [];
+    if ((_a = updatedData.categoryAndTags) === null || _a === void 0 ? void 0 : _a.categories) {
+        const existingCategories = ((_b = isProductExist.categoryAndTags) === null || _b === void 0 ? void 0 : _b.categories) || [];
         const newCategories = updatedData.categoryAndTags.categories;
         updatedData.categoryAndTags.categories = [
             ...new Set([...existingCategories.map(String), ...newCategories.map(String)])
         ];
     }
     // Merge tags (append new, keep existing)
-    if ((_e = updatedData.categoryAndTags) === null || _e === void 0 ? void 0 : _e.tags) {
-        const existingTags = ((_f = isProductExist.categoryAndTags) === null || _f === void 0 ? void 0 : _f.tags) || [];
+    if ((_c = updatedData.categoryAndTags) === null || _c === void 0 ? void 0 : _c.tags) {
+        const existingTags = ((_d = isProductExist.categoryAndTags) === null || _d === void 0 ? void 0 : _d.tags) || [];
         const newTags = updatedData.categoryAndTags.tags;
         updatedData.categoryAndTags.tags = [
             ...new Set([...existingTags.map(String), ...newTags.map(String)])
         ];
     }
-    // Merge authors (append new, keep existing)
-    if ((_h = (_g = updatedData.bookInfo) === null || _g === void 0 ? void 0 : _g.specification) === null || _h === void 0 ? void 0 : _h.authors) {
-        const existingAuthors = ((_k = (_j = isProductExist.bookInfo) === null || _j === void 0 ? void 0 : _j.specification) === null || _k === void 0 ? void 0 : _k.authors) || [];
-        const newAuthors = updatedData.bookInfo.specification.authors;
-        updatedData.bookInfo.specification.authors = [
-            ...new Set([...existingAuthors.map(String), ...newAuthors.map(String)])
-        ];
-    }
-    // Merge genre (append new, keep existing)
-    if ((_l = updatedData.bookInfo) === null || _l === void 0 ? void 0 : _l.genre) {
-        const existingGenre = ((_m = isProductExist.bookInfo) === null || _m === void 0 ? void 0 : _m.genre) || [];
-        const newGenre = updatedData.bookInfo.genre;
-        updatedData.bookInfo.genre = [...new Set([...existingGenre, ...newGenre])];
-    }
     // Merge keywords (append new, keep existing)
-    if ((_o = updatedData.description) === null || _o === void 0 ? void 0 : _o.keywords) {
-        const existingKeywords = ((_p = isProductExist.description) === null || _p === void 0 ? void 0 : _p.keywords) || [];
+    if ((_e = updatedData.description) === null || _e === void 0 ? void 0 : _e.keywords) {
+        const existingKeywords = ((_f = isProductExist.description) === null || _f === void 0 ? void 0 : _f.keywords) || [];
         const newKeywords = updatedData.description.keywords;
         updatedData.description.keywords = [...new Set([...existingKeywords, ...newKeywords])];
     }
     // Handle gallery cleanup with deletedImages
-    if (((_q = updatedData.deletedImages) === null || _q === void 0 ? void 0 : _q.length) > 0) {
-        if ((_r = isProductExist.gallery) === null || _r === void 0 ? void 0 : _r.length) {
+    if (((_g = updatedData.deletedImages) === null || _g === void 0 ? void 0 : _g.length) > 0) {
+        if ((_h = isProductExist.gallery) === null || _h === void 0 ? void 0 : _h.length) {
             const restDBImages = isProductExist.gallery.filter((img) => { var _a; return !((_a = updatedData.deletedImages) === null || _a === void 0 ? void 0 : _a.includes(img)); });
             const updatedGalleryImages = (updatedData.gallery || [])
                 .filter((img) => { var _a; return !((_a = updatedData.deletedImages) === null || _a === void 0 ? void 0 : _a.includes(img)); })
@@ -204,17 +132,15 @@ const updateProductOnDB = (id, updatedData) => __awaiter(void 0, void 0, void 0,
         yield Promise.all(updatedData.deletedImages.map((img) => (0, cloudinary_config_1.deleteImageFromCLoudinary)(img)));
     }
     const updatedProduct = yield product_model_1.ProductModel.findByIdAndUpdate(id, { $set: updatedData }, { new: true, runValidators: true })
-        .populate("categoryAndTags.publisher")
         .populate("categoryAndTags.categories")
         .populate("categoryAndTags.tags")
-        .populate("bookInfo.specification.authors");
+        .populate("productInfo.brand");
     // Delete old featured image if replaced
     if (updatedData.featuredImg && isProductExist.featuredImg && updatedData.featuredImg !== isProductExist.featuredImg) {
         yield (0, cloudinary_config_1.deleteImageFromCLoudinary)(isProductExist.featuredImg);
     }
     return updatedProduct;
 });
-// delete product from database
 const deleteSingleProductOnDB = (id) => __awaiter(void 0, void 0, void 0, function* () {
     const product = yield product_model_1.ProductModel.findByIdAndDelete(id);
     if (!product) {
@@ -231,13 +157,12 @@ const searchProductsFromDB = (query) => __awaiter(void 0, void 0, void 0, functi
             { "description.name": query },
             { "description.slug": query },
             { "productInfo.sku": query },
-            { "bookInfo.specification.isbn": query },
         ],
     })
         .limit(10)
         .populate("categoryAndTags.categories")
         .populate("categoryAndTags.tags")
-        .populate("categoryAndTags.publisher");
+        .populate("productInfo.brand");
     if (exactMatch.length > 0)
         return exactMatch;
     // Partial match (case-insensitive)
@@ -246,42 +171,21 @@ const searchProductsFromDB = (query) => __awaiter(void 0, void 0, void 0, functi
             { "description.name": { $regex: query, $options: "i" } },
             { "description.slug": { $regex: query, $options: "i" } },
             { "description.description": { $regex: query, $options: "i" } },
-            {
-                "bookInfo.specification.authors.name": { $regex: query, $options: "i" },
-            },
-            { "bookInfo.specification.publisher": { $regex: query, $options: "i" } },
-            { "bookInfo.specification.language": { $regex: query, $options: "i" } },
-            { "bookInfo.genre": { $regex: query, $options: "i" } },
+            { "productInfo.productTitle": { $regex: query, $options: "i" } },
         ],
     })
         .limit(10)
         .populate("categoryAndTags.categories")
         .populate("categoryAndTags.tags")
-        .populate("categoryAndTags.publisher");
+        .populate("productInfo.brand");
     return partialMatch;
-});
-const getProductsByAuthorFromDB = (authorId, query) => __awaiter(void 0, void 0, void 0, function* () {
-    const productQuery = new QueryBuilder_1.default(product_model_1.ProductModel.find({
-        "bookInfo.specification.authors": authorId,
-    })
-        .populate("categoryAndTags.categories")
-        .populate("categoryAndTags.tags")
-        .populate("bookInfo.specification.authors"), query)
-        .filter()
-        .sort()
-        .paginate()
-        .fields();
-    const data = yield productQuery.modelQuery;
-    const meta = yield productQuery.countTotal();
-    return { meta, data };
 });
 const getPopularProductsFromDB = (query) => __awaiter(void 0, void 0, void 0, function* () {
     const productQuery = new QueryBuilder_1.default(product_model_1.ProductModel.find({ "description.status": "publish" })
-        .populate("categoryAndTags.publisher")
         .populate("categoryAndTags.categories")
         .populate("categoryAndTags.tags")
-        .populate("bookInfo.specification.authors")
-        .sort({ "productInfo.sold": -1 }), query)
+        .populate("productInfo.brand")
+        .sort({ soldCount: -1 }), query)
         .filter()
         .paginate()
         .fields();
@@ -289,6 +193,48 @@ const getPopularProductsFromDB = (query) => __awaiter(void 0, void 0, void 0, fu
     const meta = yield productQuery.countTotal();
     return { meta, data };
 });
+// NEW: Generate product variants from specifications
+const generateProductVariantsFromDB = (productId, specifications) => __awaiter(void 0, void 0, void 0, function* () {
+    const product = yield product_model_1.ProductModel.findById(productId);
+    if (!product)
+        throw new handleAppError_1.default(404, "Product not found");
+    // Generate all possible combinations
+    const variants = generateVariantCombinations(specifications, product.productInfo);
+    product.variants = variants;
+    product.hasVariants = true;
+    product.productType = "variable";
+    yield product.save();
+    return product;
+});
+// Helper function to generate variant combinations
+const generateVariantCombinations = (specifications, baseProductInfo) => {
+    const specKeys = Object.keys(specifications);
+    const specValues = Object.values(specifications);
+    if (specKeys.length === 0)
+        return [];
+    const combinations = [];
+    function generateCombos(index, currentCombo) {
+        if (index === specKeys.length) {
+            combinations.push({
+                sku: `${baseProductInfo.sku}-${Object.values(currentCombo).join('-')}`,
+                price: baseProductInfo.price,
+                salePrice: baseProductInfo.salePrice,
+                quantity: 0,
+                specifications: Object.assign({}, currentCombo),
+                images: [],
+                isActive: true
+            });
+            return;
+        }
+        const currentKey = specKeys[index];
+        const currentValues = specValues[index];
+        for (const value of currentValues) {
+            generateCombos(index + 1, Object.assign(Object.assign({}, currentCombo), { [currentKey]: value }));
+        }
+    }
+    generateCombos(0, {});
+    return combinations;
+};
 exports.productServices = {
     createProductOnDB,
     getAllProductFromDB,
@@ -297,6 +243,6 @@ exports.productServices = {
     getProductsByCategoryandTag,
     getSingleProductFromDB,
     updateProductOnDB,
-    getProductsByAuthorFromDB,
     getPopularProductsFromDB,
+    generateProductVariantsFromDB,
 };

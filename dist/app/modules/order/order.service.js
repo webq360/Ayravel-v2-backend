@@ -69,6 +69,7 @@ const recentlyOrderedProductsFromDB = () => __awaiter(void 0, void 0, void 0, fu
         .populate({
         path: "bookInfo.specification.authors",
         select: "name image description",
+        options: { strictPopulate: false }
     })
         .lean()
         .exec();

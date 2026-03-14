@@ -210,17 +210,6 @@ const searchProducts = (0, catchAsync_1.default)((req, res) => __awaiter(void 0,
         data: result,
     });
 }));
-const getProductsByAuthor = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { authorId } = req.params;
-    const result = yield product_service_1.productServices.getProductsByAuthorFromDB(authorId, req.query);
-    (0, sendResponse_1.default)(res, {
-        success: true,
-        statusCode: http_status_1.default.OK,
-        message: "Products by author retrieved successfully!",
-        data: result.data,
-        meta: result.meta,
-    });
-}));
 const getPopularProducts = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const result = yield product_service_1.productServices.getPopularProductsFromDB(req.query);
     (0, sendResponse_1.default)(res, {
@@ -231,6 +220,18 @@ const getPopularProducts = (0, catchAsync_1.default)((req, res) => __awaiter(voi
         meta: result.meta,
     });
 }));
+// NEW: Generate product variants from specifications
+const generateProductVariants = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { productId } = req.params;
+    const { specifications } = req.body;
+    const result = yield product_service_1.productServices.generateProductVariantsFromDB(productId, specifications);
+    (0, sendResponse_1.default)(res, {
+        success: true,
+        statusCode: http_status_1.default.OK,
+        message: "Product variants generated successfully!",
+        data: result,
+    });
+}));
 exports.productControllers = {
     createProduct,
     getSingleProduct,
@@ -239,6 +240,6 @@ exports.productControllers = {
     getAllProduct,
     updateProduct,
     getProductsByCategoryandTag,
-    getProductsByAuthor,
     getPopularProducts,
+    generateProductVariants,
 };

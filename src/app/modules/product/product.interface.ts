@@ -1,25 +1,18 @@
 import { Types } from "mongoose";
 
 export type TCategoriesAndTags = {
-  publisher?: string; // Name of the publisher
   categories: Types.ObjectId[];
   tags: Types.ObjectId[];
   subCategories?: string[];
 };
 
-// export type TCategoryAndTags = {
-//   publisher: string; // Publisher name
-//   categories: string[]; // e.g., Fiction, History
-//   tags?: string[]; // keywords
-// };
-
 export type TDescription = {
-  name: string; // Book title
-  slug: string; // SEO-friendly URL slug
-  description: string; // Book summary
+  name: string;
+  slug: string;
+  description: string;
   status: "publish" | "draft";
-  name_bn?: string; // Bengali title
-  description_bn?: string; // Bengali summary
+  name_bn?: string;
+  description_bn?: string;
   metaTitle?: string;
   metaDescription?: string;
   keywords?: string[];
@@ -53,46 +46,43 @@ export type TProductInfo = {
   publicationDate?: Date;
   isOnSale?: boolean;
   campaign?: string;
-  inStock?: boolean; // derived field
+  inStock?: boolean;
 };
 
-// export type TAuthor = {
-//   name: string;
-//   image?: string;
-//   description?: string;
-// };
-
-export type TSpecification = {
-  authors?: Types.ObjectId[]; // Array of author IDs
-  publisher: string; // Publisher name
-  edition?: string;
-  editionYear?: number;
-  numberOfPages: number;
-  country: string;
-  language: string;
-  isbn?: string;
-  binding?: "hardcover" | "paperback";
+// SIMPLIFIED: Flexible Specifications
+export type TProductSpecification = {
+  [key: string]: string; // Any key-value pair: color: "red", size: "L", material: "cotton"
 };
 
-export type TBookInfo = {
-  specification: TSpecification;
-  format?: "hardcover" | "paperback" | "ebook" | "audiobook";
-  genre?: string[];
-  series?: string;
-  translator?: string;
+// SIMPLIFIED: Product Variants
+export type TProductVariant = {
+  _id?: Types.ObjectId;
+  sku: string;
+  price: number;
+  salePrice?: number;
+  quantity: number;
+  specifications: TProductSpecification;
+  images?: string[];
+  isActive: boolean;
 };
 
+// MAIN: Product Type
 export type TProduct = {
   featuredImg: string;
   previewImg?: string[];
   gallery?: string[];
   video?: string;
-  previewPdf?: string;
   categoryAndTags: TCategoriesAndTags;
   description: TDescription;
   productType: "simple" | "variable";
   productInfo: TProductInfo;
-  bookInfo: TBookInfo;
+  
+  // FLEXIBLE: Optional specifications
+  hasVariants: boolean;
+  variants?: TProductVariant[];
+  specifications?: TProductSpecification; // For simple products
+  
+  // Analytics
   averageRating?: number;
   ratingCount?: number;
   reviewCount?: number;

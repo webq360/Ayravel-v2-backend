@@ -35,9 +35,16 @@ export type TPaymentInfo = {
   nameOnCard: string;
 };
 
+// NEW: Product Specification for orders
+export type TProductSpecification = {
+  [key: string]: string; // color: "red", size: "L"
+};
+
 export type TOrderInfo = {
   orderBy: Types.ObjectId;
   productInfo: Types.ObjectId;
+  variantId?: Types.ObjectId; // NEW: For variant selection
+  selectedSpecs?: TProductSpecification; // NEW: Selected specifications
   trackingNumber: number;
   status:
     | "pending"

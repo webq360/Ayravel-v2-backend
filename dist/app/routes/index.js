@@ -27,6 +27,7 @@ const salesHistory_routes_1 = require("../modules/salesHistory/salesHistory.rout
 const settings_routes_1 = require("../modules/settings/settings.routes");
 const shipping_route_1 = require("../modules/shipping/shipping.route");
 const shop_route_1 = require("../modules/shop/shop.route");
+const specificationTemplate_routes_1 = require("../modules/specificationTemplate/specificationTemplate.routes");
 const summary_route_1 = require("../modules/summary/summary.route");
 const superAdmin_route_1 = require("../modules/super-admin/superAdmin.route");
 const tags_routes_1 = require("../modules/tags/tags.routes");
@@ -79,6 +80,10 @@ const moduleRoutes = [
     {
         path: "/product",
         route: product_routes_1.ProductRoutes,
+    },
+    {
+        path: "/specification-template",
+        route: specificationTemplate_routes_1.specificationTemplateRoutes,
     },
     {
         path: "/coupon",

@@ -62,6 +62,11 @@ const paymentInfoSchema = new mongoose_1.Schema({
     cvc: { type: String, required: [true, "CVC is required!"] },
     nameOnCard: { type: String, required: [true, "Name on card is required!"] },
 }, { _id: false });
+// NEW: Product Specification Schema
+const productSpecificationSchema = new mongoose_1.Schema({}, {
+    strict: false, // Allow dynamic fields
+    _id: false
+});
 // Order Info Schema
 const orderInfoSchema = new mongoose_1.Schema({
     orderBy: {
@@ -72,6 +77,14 @@ const orderInfoSchema = new mongoose_1.Schema({
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Product",
         required: true,
+    },
+    variantId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        required: false,
+    },
+    selectedSpecs: {
+        type: productSpecificationSchema,
+        required: false,
     },
     trackingNumber: {
         type: Number,

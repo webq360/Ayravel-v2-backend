@@ -29,7 +29,7 @@ export const createCategoryZodSchema = z.object({
     "kids-fashion",
     "kitchen",
     "home-decor",
-    "electronics-&-gadgets",
+    "electronics-gadgets",
     "jewelry",
     "shoes",
     "toys",

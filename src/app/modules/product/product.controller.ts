@@ -252,19 +252,6 @@ const searchProducts = catchAsync(async (req, res) => {
   });
 });
 
-const getProductsByAuthor = catchAsync(async (req, res) => {
-  const { authorId } = req.params;
-  const result = await productServices.getProductsByAuthorFromDB(authorId, req.query);
-
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Products by author retrieved successfully!",
-    data: result.data,
-    meta: result.meta,
-  });
-});
-
 const getPopularProducts = catchAsync(async (req, res) => {
   const result = await productServices.getPopularProductsFromDB(req.query);
 
@@ -277,6 +264,21 @@ const getPopularProducts = catchAsync(async (req, res) => {
   });
 });
 
+// NEW: Generate product variants from specifications
+const generateProductVariants = catchAsync(async (req, res) => {
+  const { productId } = req.params;
+  const { specifications } = req.body;
+  
+  const result = await productServices.generateProductVariantsFromDB(productId, specifications);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Product variants generated successfully!",
+    data: result,
+  });
+});
+
 export const productControllers = {
   createProduct,
   getSingleProduct,
@@ -285,6 +287,6 @@ export const productControllers = {
   getAllProduct,
   updateProduct,
   getProductsByCategoryandTag,
-  getProductsByAuthor,
   getPopularProducts,
+  generateProductVariants,
 };

@@ -1,4 +1,13 @@
 import { model, Schema } from "mongoose";
+import {
+  TCategoriesAndTags,
+  TDescription,
+  TExternal,
+  TProduct,
+  TProductInfo,
+  TProductSpecification,
+  TProductVariant,
+} from "./product.interface";
 
 // Helper function for discount calculation
 const calculateDiscount = (price: number, salePrice?: number) => {
@@ -6,32 +15,26 @@ const calculateDiscount = (price: number, salePrice?: number) => {
   return Math.round(((price - salePrice) / price) * 100);
 };
 
-import {
-  TBookInfo,
-  TCategoriesAndTags,
-  TDescription,
-  TExternal,
-  TProduct,
-  TProductInfo,
-  TSpecification,
-} from "./product.interface";
+// Product Specification Schema (Dynamic)
+const productSpecificationSchema = new Schema<TProductSpecification>({}, { 
+  strict: false, // Allow dynamic fields
+  _id: false 
+});
 
-// Category & Tags Schema
-// const categoryAndTagsSchema = new Schema<TCategoryAndTags>(
-//   {
-//     publisher: { type: String, required: true },
-//     categories: [{ type: String, required: true }],
-//     tags: [{ type: String }],
-//   },
-//   { _id: false }
-// );
+// Product Variant Schema
+const productVariantSchema = new Schema<TProductVariant>({
+  sku: { type: String, required: true },
+  price: { type: Number, required: true },
+  salePrice: Number,
+  quantity: { type: Number, required: true },
+  specifications: { type: productSpecificationSchema, required: true },
+  images: [String],
+  isActive: { type: Boolean, default: true }
+}, { timestamps: true });
 
 // Category & Tags Schema
 const categoryAndTagsSchema = new Schema<TCategoriesAndTags>(
   {
-    publisher: {
-      type: String,
-    },
     categories: [
       { type: Schema.Types.ObjectId, ref: "category", required: true },
     ],
@@ -40,6 +43,7 @@ const categoryAndTagsSchema = new Schema<TCategoriesAndTags>(
   },
   { _id: false }
 );
+
 // Description Schema
 const descriptionSchema = new Schema<TDescription>(
   {
@@ -99,51 +103,6 @@ const productInfoSchema = new Schema<TProductInfo>(
   { _id: false }
 );
 
-// Author Schema
-// const authorSchema = new Schema<TAuthor>(
-//   {
-//     name: { type: String, required: true },
-//     image: String,
-//     description: String,
-//   },
-//   { _id: false }
-// );
-
-// Specification Schema
-const specificationSchema = new Schema<TSpecification>(
-  {
-    authors: { type: [Schema.Types.ObjectId], ref: "Author", required: true },
-    publisher: {
-      type: String,
-      required: false,
-    },
-    edition: String,
-    editionYear: Number,
-    // numberOfPages: { type: Number, required: true },
-    numberOfPages: { type: Number, required: false },
-    country: { type: String, required: true },
-    language: { type: String, required: true },
-    isbn: String,
-    binding: { type: String, enum: ["hardcover", "paperback"] },
-  },
-  { _id: false }
-);
-
-// BookInfo Schema
-const bookInfoSchema = new Schema<TBookInfo>(
-  {
-    specification: { type: specificationSchema, required: false },
-    format: {
-      type: String,
-      enum: ["hardcover", "paperback", "ebook", "audiobook"],
-    },
-    genre: [String],
-    series: String,
-    translator: String,
-  },
-  { _id: false }
-);
-
 // Product Schema
 const productSchema = new Schema<TProduct>(
   {
@@ -151,12 +110,17 @@ const productSchema = new Schema<TProduct>(
     previewImg: [String],
     gallery: [String],
     video: String,
-    previewPdf: String,
     categoryAndTags: { type: categoryAndTagsSchema, required: true },
     description: { type: descriptionSchema, required: true },
     productType: { type: String, enum: ["simple", "variable"], required: true },
     productInfo: { type: productInfoSchema, required: true },
-    bookInfo: { type: bookInfoSchema },
+    
+    // NEW: Specification system
+    hasVariants: { type: Boolean, default: false },
+    variants: [productVariantSchema],
+    specifications: productSpecificationSchema,
+    
+    // Analytics
     averageRating: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },
     reviewCount: { type: Number, default: 0 },
@@ -166,7 +130,7 @@ const productSchema = new Schema<TProduct>(
   { timestamps: true }
 );
 
-// 🔹 Pre-save middleware
+// Pre-save middleware
 productSchema.pre("save", function (next) {
   if (this.productInfo) {
     this.productInfo.totalDiscount = calculateDiscount(
@@ -175,17 +139,19 @@ productSchema.pre("save", function (next) {
     );
   }
 
-  if (this.bookInfo?.specification?.binding) {
-    this.bookInfo.specification.binding =
-      this.bookInfo.specification.binding.toLowerCase() as
-        | "hardcover"
-        | "paperback";
+  // Generate variant SKUs if not provided
+  if (this.hasVariants && this.variants) {
+    this.variants.forEach((variant, index) => {
+      if (!variant.sku) {
+        variant.sku = `${this.productInfo.sku}-V${index + 1}`;
+      }
+    });
   }
 
   next();
 });
 
-// 🔹 Pre-findOneAndUpdate middleware
+// Pre-findOneAndUpdate middleware
 productSchema.pre("findOneAndUpdate", function (next) {
   const update = this.getUpdate() as any;
 
@@ -194,11 +160,6 @@ productSchema.pre("findOneAndUpdate", function (next) {
     const salePrice = update.productInfo.salePrice ?? 0;
 
     update.productInfo.totalDiscount = calculateDiscount(price, salePrice);
-  }
-
-  if (update?.bookInfo?.specification?.binding) {
-    update.bookInfo.specification.binding =
-      update.bookInfo.specification.binding.toLowerCase();
   }
 
   this.setUpdate(update);

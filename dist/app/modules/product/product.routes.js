@@ -13,7 +13,8 @@ router.get("/search", product_controller_1.productControllers.searchProducts);
 router.get("/popular-products", product_controller_1.productControllers.getPopularProducts);
 router.get("/:id", product_controller_1.productControllers.getSingleProduct);
 router.get("/products/by", product_controller_1.productControllers.getProductsByCategoryandTag);
-router.get("/by-author/:authorId", product_controller_1.productControllers.getProductsByAuthor);
+// NEW: Variant generation route
+router.post("/generate-variants/:productId", product_controller_1.productControllers.generateProductVariants);
 router.post("/create-product", multer_config_1.multerUpload.fields([
     { name: "galleryImagesFiles", maxCount: 5 },
     { name: "featuredImgFile", maxCount: 1 },

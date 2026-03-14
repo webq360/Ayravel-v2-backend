@@ -19,7 +19,8 @@ router.get("/:id", productControllers.getSingleProduct);
 
 router.get("/products/by", productControllers.getProductsByCategoryandTag);
 
-router.get("/by-author/:authorId", productControllers.getProductsByAuthor);
+// NEW: Variant generation route
+router.post("/generate-variants/:productId", productControllers.generateProductVariants);
 
 router.post(
   "/create-product",

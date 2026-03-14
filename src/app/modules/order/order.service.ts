@@ -63,6 +63,7 @@ const recentlyOrderedProductsFromDB = async () => {
     .populate({
       path: "bookInfo.specification.authors",
       select: "name image description",
+      options: { strictPopulate: false }
     })
     .lean()
     .exec();

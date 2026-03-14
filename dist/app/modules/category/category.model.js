@@ -21,7 +21,7 @@ const categorySchema = new mongoose_1.Schema({
             "bags",
             "jewelry",
             "home-decor",
-            "electronics-&-gadgets",
+            "electronics-gadgets",
             "shoes",
             "watches",
             "kids-fashion",

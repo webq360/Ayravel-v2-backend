@@ -27,9 +27,12 @@ const feauturedCategoriesFromDB = () => __awaiter(void 0, void 0, void 0, functi
     return yield category_model_1.CategoryModel.find({ feautured: true });
 });
 const createCategoryIntoDB = (payload) => __awaiter(void 0, void 0, void 0, function* () {
-    const isCategoryExists = yield category_model_1.CategoryModel.findOne({ name: payload === null || payload === void 0 ? void 0 : payload.name });
+    const isCategoryExists = yield category_model_1.CategoryModel.findOne({
+        name: payload === null || payload === void 0 ? void 0 : payload.name,
+        mainCategory: payload === null || payload === void 0 ? void 0 : payload.mainCategory
+    });
     if (isCategoryExists) {
-        throw new handleAppError_1.default(http_status_1.default.CONFLICT, `Category with ${isCategoryExists === null || isCategoryExists === void 0 ? void 0 : isCategoryExists.name} already exists!`);
+        throw new handleAppError_1.default(http_status_1.default.CONFLICT, `Category with ${isCategoryExists === null || isCategoryExists === void 0 ? void 0 : isCategoryExists.name} already exists in ${isCategoryExists === null || isCategoryExists === void 0 ? void 0 : isCategoryExists.mainCategory}!`);
     }
     // slug
     payload.slug = payload.name.split(" ").join("-").toLowerCase();
@@ -42,9 +45,12 @@ const updateCategoryInDB = (id, payload) => __awaiter(void 0, void 0, void 0, fu
         throw new handleAppError_1.default(404, "Category not found!");
     if (payload.name) {
         payload.slug = payload.name.split(" ").join("-").toLowerCase();
-        const exists = yield category_model_1.CategoryModel.findOne({ name: payload === null || payload === void 0 ? void 0 : payload.name });
+        const exists = yield category_model_1.CategoryModel.findOne({
+            name: payload === null || payload === void 0 ? void 0 : payload.name,
+            mainCategory: (payload === null || payload === void 0 ? void 0 : payload.mainCategory) || isCategory.mainCategory
+        });
         if (exists && exists._id.toString() !== id) {
-            throw new handleAppError_1.default(http_status_1.default.CONFLICT, `Category with ${exists === null || exists === void 0 ? void 0 : exists.name} already exists!`);
+            throw new handleAppError_1.default(http_status_1.default.CONFLICT, `Category with ${exists === null || exists === void 0 ? void 0 : exists.name} already exists in ${exists === null || exists === void 0 ? void 0 : exists.mainCategory}!`);
         }
     }
     // delete old image if new one uploaded

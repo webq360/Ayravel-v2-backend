@@ -3,51 +3,19 @@ import { deleteImageFromCLoudinary } from "../../config/cloudinary.config";
 import AppError from "../../errors/handleAppError";
 import { CategoryModel } from "../category/category.model";
 import { ProductSearchableFields } from "./product.const";
-import { TProduct } from "./product.interface";
+import { TProduct, TProductVariant } from "./product.interface";
 import { ProductModel } from "./product.model";
 
-//normalize binding input
-const normalizeBinding = (binding?: string) => {
-  if (!binding) return binding;
-  return binding.toLowerCase();
-};
-
-// const createProductOnDB = async (payload: TProduct) => {
-//   const result = await ProductModel.create(payload);
-//   return result;
-// };
-
-// 🔹 Create product
-// const createProductOnDB = async (payload: TProduct) => {
-//   // Ensure salePrice is defined if isOnSale is true
-//   if (payload.bookInfo?.specification?.binding) {
-//     payload.bookInfo.specification.binding = normalizeBinding(
-//       payload.bookInfo.specification.binding
-//     ) as "hardcover" | "paperback";
-//   }
-
-//   const result = await ProductModel.create(payload);
-//   return result;
-// };
-
 const createProductOnDB = async (payload: TProduct) => {
-  // Check if any category is a book category
-  const categoryIds = payload.categoryAndTags.categories;
-  const categories = await CategoryModel.find({ _id: { $in: categoryIds } });
-  const isBook = categories.some(cat => cat.mainCategory?.toLowerCase() === 'book');
-
-  // Only keep bookInfo for book products
-  if (isBook) {
-    if (payload.bookInfo?.specification?.binding) {
-      payload.bookInfo.specification.binding = normalizeBinding(
-        payload.bookInfo.specification.binding
-      ) as "hardcover" | "paperback";
-    }
-  } else {
-    // Remove bookInfo for non-book products
-    delete (payload as any).bookInfo;
+  // Generate variants if it's a variable product
+  if (payload.productType === "variable" && payload.hasVariants && payload.variants) {
+    // Auto-generate SKUs for variants if not provided
+    payload.variants = payload.variants.map((variant, index) => ({
+      ...variant,
+      sku: variant.sku || `${payload.productInfo.sku}-V${index + 1}`
+    }));
   }
-
+  
   const result = await ProductModel.create(payload);
   return result;
 };
@@ -55,10 +23,9 @@ const createProductOnDB = async (payload: TProduct) => {
 const getAllProductFromDB = async (query: Record<string, unknown>) => {
   const productQuery = new QueryBuilder(
     ProductModel.find()
-      .populate("categoryAndTags.publisher")
       .populate("categoryAndTags.categories")
       .populate("categoryAndTags.tags")
-      .populate("bookInfo.specification.authors"),
+      .populate("productInfo.brand"),
     query
   )
     .search(ProductSearchableFields)
@@ -66,10 +33,8 @@ const getAllProductFromDB = async (query: Record<string, unknown>) => {
     .sort()
     .paginate()
     .fields();
-  // ✅ Execute main query for product data
-  const data = await productQuery.modelQuery;
 
-  // ✅ Use built-in countTotal() from QueryBuilder
+  const data = await productQuery.modelQuery;
   const meta = await productQuery.countTotal();
 
   return {
@@ -100,25 +65,8 @@ const getProductsByCategoryandTag = async (category: string, tag: string) => {
       },
     },
     {
-      $lookup: {
-        from: "publishers",
-        localField: "categoryAndTags.publisher",
-        foreignField: "_id",
-        as: "publisherDetails",
-      },
-    },
-    {
-      $lookup: {
-        from: "authors",
-        localField: "bookInfo.specification.authors",
-        foreignField: "_id",
-        as: "authorsDetails",
-      },
-    },
-    {
       $addFields: {
         categoryAndTags: {
-          publisher: { $arrayElemAt: ["$publisherDetails", 0] },
           categories: "$categoryDetails",
           tags: "$tagDetails",
         },
@@ -137,7 +85,6 @@ const getProductsByCategoryandTag = async (category: string, tag: string) => {
       $project: {
         categoryDetails: 0,
         tagDetails: 0,
-        publisherDetails: 0,
       },
     },
   ]);
@@ -145,10 +92,9 @@ const getProductsByCategoryandTag = async (category: string, tag: string) => {
 
 const getSingleProductFromDB = async (id: string) => {
   return ProductModel.findById(id)
-    .populate("categoryAndTags.publisher")
     .populate("categoryAndTags.categories")
     .populate("categoryAndTags.tags")
-    .populate("bookInfo.specification.authors");
+    .populate("productInfo.brand");
 };
 
 const updateProductOnDB = async (
@@ -158,13 +104,6 @@ const updateProductOnDB = async (
   const isProductExist = await ProductModel.findById(id);
   if (!isProductExist) {
     throw new AppError(404, "Product not found!");
-  }
-
-  // Normalize binding
-  if (updatedData.bookInfo?.specification?.binding) {
-    updatedData.bookInfo.specification.binding = normalizeBinding(
-      updatedData.bookInfo.specification.binding
-    ) as "hardcover" | "paperback";
   }
 
   // Merge categories (append new, keep existing)
@@ -183,22 +122,6 @@ const updateProductOnDB = async (
     updatedData.categoryAndTags.tags = [
       ...new Set([...existingTags.map(String), ...newTags.map(String)])
     ] as any;
-  }
-
-  // Merge authors (append new, keep existing)
-  if (updatedData.bookInfo?.specification?.authors) {
-    const existingAuthors = isProductExist.bookInfo?.specification?.authors || [];
-    const newAuthors = updatedData.bookInfo.specification.authors;
-    updatedData.bookInfo.specification.authors = [
-      ...new Set([...existingAuthors.map(String), ...newAuthors.map(String)])
-    ] as any;
-  }
-
-  // Merge genre (append new, keep existing)
-  if (updatedData.bookInfo?.genre) {
-    const existingGenre = isProductExist.bookInfo?.genre || [];
-    const newGenre = updatedData.bookInfo.genre;
-    updatedData.bookInfo.genre = [...new Set([...existingGenre, ...newGenre])];
   }
 
   // Merge keywords (append new, keep existing)
@@ -235,10 +158,9 @@ const updateProductOnDB = async (
     { $set: updatedData },
     { new: true, runValidators: true }
   )
-    .populate("categoryAndTags.publisher")
     .populate("categoryAndTags.categories")
     .populate("categoryAndTags.tags")
-    .populate("bookInfo.specification.authors");
+    .populate("productInfo.brand");
 
   // Delete old featured image if replaced
   if (updatedData.featuredImg && isProductExist.featuredImg && updatedData.featuredImg !== isProductExist.featuredImg) {
@@ -247,8 +169,6 @@ const updateProductOnDB = async (
 
   return updatedProduct;
 };
-
-// delete product from database
 
 const deleteSingleProductOnDB = async (id: string) => {
   const product = await ProductModel.findByIdAndDelete(id);
@@ -267,13 +187,12 @@ const searchProductsFromDB = async (query: string) => {
       { "description.name": query },
       { "description.slug": query },
       { "productInfo.sku": query },
-      { "bookInfo.specification.isbn": query },
     ],
   })
     .limit(10)
     .populate("categoryAndTags.categories")
     .populate("categoryAndTags.tags")
-    .populate("categoryAndTags.publisher");
+    .populate("productInfo.brand");
 
   if (exactMatch.length > 0) return exactMatch;
 
@@ -283,54 +202,24 @@ const searchProductsFromDB = async (query: string) => {
       { "description.name": { $regex: query, $options: "i" } },
       { "description.slug": { $regex: query, $options: "i" } },
       { "description.description": { $regex: query, $options: "i" } },
-      {
-        "bookInfo.specification.authors.name": { $regex: query, $options: "i" },
-      },
-      { "bookInfo.specification.publisher": { $regex: query, $options: "i" } },
-      { "bookInfo.specification.language": { $regex: query, $options: "i" } },
-      { "bookInfo.genre": { $regex: query, $options: "i" } },
+      { "productInfo.productTitle": { $regex: query, $options: "i" } },
     ],
   })
     .limit(10)
     .populate("categoryAndTags.categories")
     .populate("categoryAndTags.tags")
-    .populate("categoryAndTags.publisher");
+    .populate("productInfo.brand");
 
   return partialMatch;
-};
-
-const getProductsByAuthorFromDB = async (
-  authorId: string,
-  query: Record<string, unknown>
-) => {
-  const productQuery = new QueryBuilder(
-    ProductModel.find({
-      "bookInfo.specification.authors": authorId,
-    })
-      .populate("categoryAndTags.categories")
-      .populate("categoryAndTags.tags")
-      .populate("bookInfo.specification.authors"),
-    query
-  )
-    .filter()
-    .sort()
-    .paginate()
-    .fields();
-
-  const data = await productQuery.modelQuery;
-  const meta = await productQuery.countTotal();
-
-  return { meta, data };
 };
 
 const getPopularProductsFromDB = async (query: Record<string, unknown>) => {
   const productQuery = new QueryBuilder(
     ProductModel.find({ "description.status": "publish" })
-      .populate("categoryAndTags.publisher")
       .populate("categoryAndTags.categories")
       .populate("categoryAndTags.tags")
-      .populate("bookInfo.specification.authors")
-      .sort({ "productInfo.sold": -1 }),
+      .populate("productInfo.brand")
+      .sort({ soldCount: -1 }),
     query
   )
     .filter()
@@ -341,6 +230,57 @@ const getPopularProductsFromDB = async (query: Record<string, unknown>) => {
   const meta = await productQuery.countTotal();
 
   return { meta, data };
+};
+
+// NEW: Generate product variants from specifications
+const generateProductVariantsFromDB = async (productId: string, specifications: Record<string, string[]>) => {
+  const product = await ProductModel.findById(productId);
+  if (!product) throw new AppError(404, "Product not found");
+
+  // Generate all possible combinations
+  const variants = generateVariantCombinations(specifications, product.productInfo);
+  
+  product.variants = variants;
+  product.hasVariants = true;
+  product.productType = "variable";
+  
+  await product.save();
+  return product;
+};
+
+// Helper function to generate variant combinations
+const generateVariantCombinations = (specifications: Record<string, string[]>, baseProductInfo: any): TProductVariant[] => {
+  const specKeys = Object.keys(specifications);
+  const specValues = Object.values(specifications);
+  
+  if (specKeys.length === 0) return [];
+  
+  const combinations: TProductVariant[] = [];
+  
+  function generateCombos(index: number, currentCombo: Record<string, string>) {
+    if (index === specKeys.length) {
+      combinations.push({
+        sku: `${baseProductInfo.sku}-${Object.values(currentCombo).join('-')}`,
+        price: baseProductInfo.price,
+        salePrice: baseProductInfo.salePrice,
+        quantity: 0,
+        specifications: { ...currentCombo },
+        images: [],
+        isActive: true
+      });
+      return;
+    }
+    
+    const currentKey = specKeys[index];
+    const currentValues = specValues[index];
+    
+    for (const value of currentValues) {
+      generateCombos(index + 1, { ...currentCombo, [currentKey]: value });
+    }
+  }
+  
+  generateCombos(0, {});
+  return combinations;
 };
 
 export const productServices = {
@@ -351,6 +291,6 @@ export const productServices = {
   getProductsByCategoryandTag,
   getSingleProductFromDB,
   updateProductOnDB,
-  getProductsByAuthorFromDB,
   getPopularProductsFromDB,
+  generateProductVariantsFromDB,
 };

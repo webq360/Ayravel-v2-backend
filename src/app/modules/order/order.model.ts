@@ -5,6 +5,7 @@ import {
   TOrder,
   TOrderInfo,
   TPaymentInfo,
+  TProductSpecification,
   TTotalAmount,
 } from "./order.interface";
 
@@ -84,6 +85,12 @@ const paymentInfoSchema = new Schema<TPaymentInfo>(
   { _id: false }
 );
 
+// NEW: Product Specification Schema
+const productSpecificationSchema = new Schema<TProductSpecification>({}, { 
+  strict: false, // Allow dynamic fields
+  _id: false 
+});
+
 // Order Info Schema
 const orderInfoSchema = new Schema<TOrderInfo>(
   {
@@ -95,6 +102,14 @@ const orderInfoSchema = new Schema<TOrderInfo>(
       type: Schema.Types.ObjectId,
       ref: "Product",
       required: true,
+    },
+    variantId: {
+      type: Schema.Types.ObjectId,
+      required: false,
+    },
+    selectedSpecs: {
+      type: productSpecificationSchema,
+      required: false,
     },
     trackingNumber: {
       type: Number,

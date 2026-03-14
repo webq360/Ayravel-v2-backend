@@ -22,6 +22,7 @@ import { SalesHistoryRoutes } from "../modules/salesHistory/salesHistory.routes"
 import { settingsRoutes } from "../modules/settings/settings.routes";
 import { ShippingRoutes } from "../modules/shipping/shipping.route";
 import { ShopRoutes } from "../modules/shop/shop.route";
+import { specificationTemplateRoutes } from "../modules/specificationTemplate/specificationTemplate.routes";
 import { SummaryRoutes } from "../modules/summary/summary.route";
 import { SuperAdminRoutes } from "../modules/super-admin/superAdmin.route";
 import { TagRoutes } from "../modules/tags/tags.routes";
@@ -76,6 +77,10 @@ const moduleRoutes = [
   {
     path: "/product",
     route: ProductRoutes,
+  },
+  {
+    path: "/specification-template",
+    route: specificationTemplateRoutes,
   },
   {
     path: "/coupon",
